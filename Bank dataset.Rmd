@@ -1,0 +1,266 @@
+---
+title: "bank_dataset"
+author: "Rosemary Saoke"
+date: "11/02/2024"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+
+```{r setup, include=FALSE}
+# Set the CRAN mirror
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# Install and load required packages
+if (!require("readxl")) install.packages("readxl")
+if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("dplyr")) install.packages("dplyr")
+if (!require("tidyverse")) install.packages("tidyverse")
+if (!require("psych")) install.packages("psych")
+
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(psych)
+```
+
+
+```{r bank dataset}
+# Load the dataset
+bank_dataset <- read_excel("~/Documents/demo datasets/bank_dataset.xlsx")
+```
+Brief description of the dataset
+
+This dataset contains information about 10,001 customers of a bank. The data includes various demographic and financial attributes of the customers, such as their:
+- Credit Score
+- Customer ID
+- Surname
+- Geography (Country)
+- Gender
+- Age
+- Tenure (Number of years with the bank)
+- Balance (Account balance)
+- Number of Products (Number of bank products the customer uses)
+- Has Credit Card (Binary indicator if the customer has a credit card)
+- Is Active Member (Binary indicator if the customer is an active member)
+- Estimated Salary
+- Exited (Binary indicator if the customer has exited the bank). 
+This summary is based on the first 10,001 customers selected from the original dataset.
+
+```{r credit score analysis}
+# Histogram of Credit Score
+ggplot(bank_dataset, aes(x = CreditScore)) +  
+  geom_histogram(fill = "darkblue", color = "black", bins = 30) +  
+  labs(title = "Distribution of Credit Score",
+       x = "Credit Score",
+       y = "Frequency") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Summary statistics for CreditScore variable
+summary_stats_creditscore <- describe(bank_dataset$CreditScore)
+summary_stats_creditscore
+```
+
+Conclusion: The distribution of credit scores appears to be somewhat normally distributed with a slight negative skew. The majority of customers have credit scores around the median value.
+
+```{r age analysis}
+# Histogram of Ages 
+ggplot(bank_dataset, aes(x = Age)) +  
+  geom_histogram(fill = "darkblue", color = "black", bins = 60) + 
+  labs(title = "Distribution of Age",
+       x = "Age",
+       y = "Frequency") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Summary statistics for Age variable
+summary_stats_age <- describe(bank_dataset$Age)
+summary_stats_age
+```
+
+Conclusion: The age distribution is positively skewed, indicating that there are more younger customers in the dataset. The distribution is relatively uniform with a peak around the mid-30s.
+
+```{r balance analysis}
+# Histogram of Balances 
+ggplot(bank_dataset, aes(x = Balance)) +  
+  geom_histogram(fill = "darkblue", color = "black", bins = 50) +  
+  labs(title = "Distribution of Balance",
+       x = "Balance",
+       y = "Frequency") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Summary statistics for Balance variable
+summary_stats_balance <- describe(bank_dataset$Balance)
+summary_stats_balance
+```
+Conclusion: Most customers seem to have zero balance, indicating that they might have multiple accounts or the dataset includes inactive accounts. For non-zero balances, there is a normal distribution with a mean around 55457.39.
+
+```{r estimated salary analysis}
+# Histogram of Estimated Salary 
+ggplot(bank_dataset, aes(x = EstimatedSalary)) +  
+  geom_histogram(fill = "darkblue", color = "black", bins = 75) +  
+  labs(title = "Distribution of Estimated Salary",
+       x = "Estimated Salary",
+       y = "Frequency") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Summary statistics for Estimated Salary variable
+summary_stats_estimatedsalary <- describe(bank_dataset$EstimatedSalary)
+summary_stats_estimatedsalary
+```
+
+Conclusion: The distribution of estimated salaries appears to be slightly negatively skewed with the majority of salaries around the median value of 118324.41.
+
+
+```{r heatmap}
+# Heatmap of numerical values
+numeric_vars <- bank_dataset[, c("CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary")]
+correlation_matrix <- cor(numeric_vars)
+correlation_df <- as.data.frame(correlation_matrix)
+rownames(correlation_df) <- colnames(correlation_df) <- colnames(numeric_vars)
+melted_correlation <- correlation_df %>%
+  rownames_to_column(var = "variable") %>%
+  gather(key = "variable2", value = "value", -variable)
+ggplot(melted_correlation, aes(variable, variable2, fill = value, label = round(value, 2))) +
+  geom_tile() +
+  geom_text(color = "black", size = 3) +  
+  scale_fill_gradient2(low = "green", mid = "white", high = "darkgreen", midpoint = 0, name = "Correlation") +
+  labs(title = "Correlation Heatmap of Numerical Variables",
+       x = "Variables",
+       y = "Variables")
+```
+
+Conclusion:There is a moderate negative correlation between the number of products and balance, suggesting that customers with more products tend to have lower balances.
+There are very weak negative correlations between the number of products and age, and very weak positive correlations between balance and age.
+
+```{r boxplot:credit score and gender}
+# Box plots
+# Boxplot showing the distribution of credit score between genders
+ggplot(bank_dataset, aes(x = Gender, y = CreditScore, fill = Gender)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("red", "darkblue")) +  
+  labs(title = "Credit Score Distribution by Gender",
+       x = "Gender",
+       y = "Credit Score")
+
+# Summary statistics for Credit Score by Gender
+summary_male <- bank_dataset %>%
+  filter(Gender == "Male") %>%
+  summarise(
+    Median = median(CreditScore, na.rm = TRUE),
+    Q1 = quantile(CreditScore, 0.25, na.rm = TRUE),
+    Q3 = quantile(CreditScore, 0.75, na.rm = TRUE),
+    Min = min(CreditScore, na.rm = TRUE),
+    Max = max(CreditScore, na.rm = TRUE)
+  )
+summary_female <- bank_dataset %>%
+  filter(Gender == "Female") %>%
+  summarise(
+    Median = median(CreditScore, na.rm = TRUE),
+    Q1 = quantile(CreditScore, 0.25, na.rm = TRUE),
+    Q3 = quantile(CreditScore, 0.75, na.rm = TRUE),
+    Min = min(CreditScore, na.rm = TRUE),
+    Max = max(CreditScore, na.rm = TRUE)
+  )
+
+# Print summary statistics
+cat("Summary Statistics for Males:\n")
+print(summary_male)
+cat("\nSummary Statistics for Females:\n")
+print(summary_female)
+```
+
+Conclusion: The box plot shows the distribution of credit scores between genders. While there is some overlap, males tend to have slightly higher median credit scores compared to females.
+
+```{r boxplot:credit score and geography}
+# Boxplot showing the distribution of credit scores across different countries
+ggplot(bank_dataset, aes(x = Geography, y = CreditScore, fill = Geography)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("darkblue", "darkgreen", "red")) + 
+  labs(title = "Credit Score Distribution by Country",
+       x = "Country",
+       y = "Credit Score")
+
+# Summary statistics for Credit Score by Geography 
+summary_france <- bank_dataset %>%
+  filter(Geography == "France") %>%
+  summarise(
+    Median = median(CreditScore, na.rm = TRUE),
+    Q1 = quantile(CreditScore, 0.25, na.rm = TRUE),
+    Q3 = quantile(CreditScore, 0.75, na.rm = TRUE),
+    Min = min(CreditScore, na.rm = TRUE),
+    Max = max(CreditScore, na.rm = TRUE)
+  )
+
+summary_germany <- bank_dataset %>%
+  filter(Geography == "Germany") %>%
+  summarise(
+    Median = median(CreditScore, na.rm = TRUE),
+    Q1 = quantile(CreditScore, 0.25, na.rm = TRUE),
+    Q3 = quantile(CreditScore, 0.75, na.rm = TRUE),
+    Min = min(CreditScore, na.rm = TRUE),
+    Max = max(CreditScore, na.rm = TRUE)
+  )
+
+summary_spain <- bank_dataset %>%
+  filter(Geography == "Spain") %>%
+  summarise(
+    Median = median(CreditScore, na.rm = TRUE),
+    Q1 = quantile(CreditScore, 0.25, na.rm = TRUE),
+    Q3 = quantile(CreditScore, 0.75, na.rm = TRUE),
+    Min = min(CreditScore, na.rm = TRUE),
+    Max = max(CreditScore, na.rm = TRUE)
+  )
+
+# Print summary statistics
+cat("Summary Statistics for France:\n")
+print(summary_france)
+cat("\nSummary Statistics for Germany:\n")
+print(summary_germany)
+cat("\nSummary Statistics for Spain:\n")
+print(summary_spain)
+```
+
+Conclusion: The box plot illustrates the distribution of credit scores from different countries. The median credit score seems to be slightly higher for French customers compared to German and Spanish customers.
+
+```{r boxplot:estimated salary and gender}
+# Boxplot showing the distribution of estimated salary between genders
+ggplot(bank_dataset, aes(x = Gender, y = EstimatedSalary, fill = Gender)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("red", "darkblue")) +  
+  labs(title = "Estimated Salary Distribution by Gender",
+       x = "Gender",
+       y = "Estimated Salary")
+
+# Summary statistics for Estimated Salary by Gender
+summary_male_salary <- bank_dataset %>%
+  filter(Gender == "Male") %>%
+  summarise(
+    Median = median(EstimatedSalary, na.rm = TRUE),
+    Q1 = quantile(EstimatedSalary, 0.25, na.rm = TRUE),
+    Q3 = quantile(EstimatedSalary, 0.75, na.rm = TRUE),
+    Min = min(EstimatedSalary, na.rm = TRUE),
+    Max = max(EstimatedSalary, na.rm = TRUE)
+  )
+
+summary_female_salary <- bank_dataset %>%
+  filter(Gender == "Female") %>%
+  summarise(
+    Median = median(EstimatedSalary, na.rm = TRUE),
+    Q1 = quantile(EstimatedSalary, 0.25, na.rm = TRUE),
+    Q3 = quantile(EstimatedSalary, 0.75, na.rm = TRUE),
+    Min = min(EstimatedSalary, na.rm = TRUE),
+    Max = max(EstimatedSalary, na.rm = TRUE)
+  )
+
+# Print summary statistics
+cat("Summary Statistics for Female Salary:\n")
+print(summary_female_salary)
+cat("\nSummary Statistics for Male Salary:\n")
+print(summary_male_salary)
+```
+
+Conclusion: The box plot illustrates the distribution of estimated salaries between different genders. There appear to be minimal differences between genders in terms of salary distribution.
+
